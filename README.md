@@ -20,7 +20,7 @@ dDatabase Core Software Used For Creating, Cloning and Serving Distributed Hard 
 |---|---|---|
 | [core](/packages/core) | [![npm](https://img.shields.io/npm/v/@ddatabase/core.svg)](https://www.npmjs.com/package/@ddatabase/core) | dDatabase Core Library |
 | [daemon](/packages/daemon) | [![npm](https://img.shields.io/npm/v/@ddatabase/daemon.svg)](https://www.npmjs.com/package/@ddatabase/daemon) | dDatabase Daemon |
-| [protocol](/packages/[protocol]) |  [![npm](https://img.shields.io/npm/v/@ddatabase/protocol.svg)](https://www.npmjs.com/package/@ddatabase/protocol) | dDatabase Protocol Buffers |
+| [protocol](/packages/protocol) | [![npm](https://img.shields.io/npm/v/@ddatabase/protocol.svg)](https://www.npmjs.com/package/@ddatabase/protocol) | dDatabase Protocol Buffers |
 | [stats-server](/packages/stats-server) | [![npm](https://img.shields.io/npm/v/@ddatabase/stats-server.svg)](https://www.npmjs.com/package/@ddatabase/stats-server) | dDatabase Stats Server |
 | [tree-storage](/packages/tree-storage) | [![npm](https://img.shields.io/npm/v/@ddatabase/tree-storage.svg)](https://www.npmjs.com/package/@ddatabase/tree-storage) | dDatabase Tree Storage |
 | [ui](/packages/ui) | [![npm](https://img.shields.io/npm/v/@ddatabase/ui.svg)](https://www.npmjs.com/package/@ddatabase/ui) | dDatabase Stats Web UI |
