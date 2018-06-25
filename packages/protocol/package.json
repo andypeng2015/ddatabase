@@ -1,7 +1,7 @@
 {
   "name": "@ddatabase/protocol",
   "version": "0.1.1",
-  "description": "Library for the dDatabase Protocol",
+  "description": "Library for the dDatabase Protocol Buffers.",
   "contributors": [
     "Jared Rice Sr. <jared@dwebs.io>",
     "Distributed Webs Project, LLC. <labs@distributedwebs.org>"

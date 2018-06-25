@@ -1,4 +1,4 @@
-[![dDatabase](https://raw.githubusercontent.com/DistributedWeb/dweb-design/master/repo-headers/ddrive-header.png)](https://ddatabase.io)<br>
+[![dDatabase](https://raw.githubusercontent.com/DistributedWeb/dweb-design/master/repo-headers/ddatabase-header.png)](https://ddatabase.io)<br>
 
 # dDatabase (Distributed Databases)
 
