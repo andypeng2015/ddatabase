@@ -1,0 +1,21 @@
+{
+  "name": "@ddatabase/stats-server",
+  "version": "0.1.1",
+  "description": "dDrive and dDatabase Stats Server Library.",
+  "contributors": [
+    "Jared Rice Sr. <jared@dwebs.io>",
+    "Distributed Webs Project, LLC. <labs@distributedwebs.org>"
+  ],
+  "license": "BSD-2-Clause",
+  "main": "index.js",
+  "scripts": {
+    "start": "node example.js",
+    "example": "example"
+  },
+  "devDependencies": {
+    "@ddatabase/ui": "ddatabase/ui#master"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

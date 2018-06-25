@@ -1,0 +1,29 @@
+{
+  "name": "@ddatabase/ui",
+  "version": "0.1.1",
+  "description": "UI For dDrives and dDatabase Management and Statistics.",
+  "contributors": [
+    "Jared Rice Sr. <jared@dwebs.io>",
+    "Distributed Webs Project, LLC. <labs@distributedwebs.org>"
+  ],
+  "license": "MIT",
+  "main": "index.js",
+  "dependencies": {
+    "@dwcore/netspeed": "dwcore/netspeed#master",
+    "browserify": "^16.1.1",
+    "corsify": "^2.1.0",
+    "event-source-stream": "^1.5.0",
+    "pretty-bytes": "^4.0.2",
+  },
+  "devDependencies": {
+    "@ddatabase/core": "ddatabase/core#master",
+    "@ddrive/core": "ddrives/core#master",
+    "@dwcore/rem": "dwcore/rem#master",
+    "@ddatabase/stats-server": "ddatabase/stats-server#master",
+    "@flockcore/revelation": "flockcore/revelation#master",
+    "minimist": "^1.2.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

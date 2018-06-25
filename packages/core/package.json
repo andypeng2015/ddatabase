@@ -1,0 +1,48 @@
+{
+  "name": "@ddatabase/core",
+  "version": "0.1.1",
+  "description": "Distributed and Immutable Database Framework For The Distributed Web (dWeb).",
+  "contributors": [
+    "Jared Rice Sr. <jared@dwebs.io>",
+    "Distributed Webs Project, LLC. <labs@distributedwebs.org>"
+  ],
+  "license": "MIT",
+  "main": "index.js",
+  "scripts": {},
+  "dependencies": {
+    "@benos/benpager": "benchos/benpager#master",
+    "@benos/thinbit": "benchos/thinbit#master",
+    "@ddatabase/protocol": "ddatabase/protocol#master",
+    "@dwcore/dethunk": "dwcore/dethunk#master",
+    "@dwcore/dws2wrap": "dwcore/dws2wrap#master",
+    "@dwcore/ref": "dwcore/ref#master",
+    "array-lru": "^1.1.0",
+    "atomic-batcher": "^1.0.2",
+    "bitfield-rle": "^2.0.0",
+    "buffer-alloc-unsafe": "^1.0.0",
+    "buffer-equals": "^1.0.4",
+    "buffer-from": "^1.0.0",
+    "bulk-write-stream": "^1.1.3",
+    "codecs": "^1.2.0",
+    "flat-tree": "^1.6.0",
+    "inherits": "^2.0.3",
+    "last-one-wins": "^1.0.4",
+    "merkle-tree-stream": "^3.0.3",
+    "process-nextick-args": "^1.0.7",
+    "sodium-universal": "^2.0.0",
+    "uint64be": "^2.0.1",
+    "unordered-array-remove": "^1.0.2",
+    "unordered-set": "^2.0.0"
+  },
+  "devDependencies": {
+    "@dwcore/dwsc": "dwcore/dwsc#master",
+    "@dwcore/netspeed": "dwcore/netspeed#master",
+    "@dwcore/rem": "dwcore/rem#master",
+    "shuffle-array": "^1.0.1",
+    "standard": "^8.6.0",
+    "tape": "^4.6.3"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "name": "@ddatabase/tree-storage",
+  "version": "0.1.1",
+  "description": "A module that stores dDatabase metadata trees using a storage provider.",
+  "contributors": [
+    "Jared Rice Sr. <jared@dwebs.io>",
+    "Distributed Webs Project, LLC. <labs@distributedwebs.org>"
+  ],
+  "license": "MIT",
+  "main": "index.js",
+  "dependencies": {
+    "lru": "^3.1.0",
+    "uint64be": "^1.0.1"
+  },
+  "devDependencies": {
+    "@dwcore/ref": "dwcore/ref#master",
+    "@dwcore/rem": "dwcore/rem#master"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
