@@ -1,6 +1,6 @@
 {
   "name": "@ddatabase/stats-server",
-  "version": "0.1.1",
+  "version": "0.1.3",
   "description": "dDrive and dDatabase Stats Server Library.",
   "contributors": [
     "Jared Rice Sr. <jared@dwebs.io>",

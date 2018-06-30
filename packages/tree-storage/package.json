@@ -1,6 +1,6 @@
 {
   "name": "@ddatabase/tree-storage",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "A module that stores dDatabase metadata trees using a storage provider.",
   "contributors": [
     "Jared Rice Sr. <jared@dwebs.io>",
