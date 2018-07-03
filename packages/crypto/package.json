@@ -1,0 +1,26 @@
+{
+  "name": "@ddatabase/crypto",
+  "version": "0.1.2",
+  "description": "dDatabase Cryptography Library For dDatabase Keys.",
+  "contributors": [
+    "Jared Rice Sr. <jared@dwebs.io>",
+    "Distributed Webs Project, LLC. <labs@distributedwebs.org>"
+  ],
+  "main": "index.js",
+  "dependencies": {
+    "buffer-alloc-unsafe": "^1.1.0",
+    "buffer-from": "^1.1.0",
+    "sodium-universal": "^2.0.0",
+    "uint64be": "^2.0.2"
+  },
+  "devDependencies": {
+    "standard": "^11.0.1",
+    "tape": "^4.9.1"
+  },
+  "scripts": {
+    "test": "standard && tape test.js"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
