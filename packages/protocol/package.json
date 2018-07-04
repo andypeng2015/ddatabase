@@ -1,6 +1,6 @@
 {
   "name": "@ddatabase/protocol",
-  "version": "0.2.9",
+  "version": "0.3.1",
   "description": "dDatabase Protocol Stream",
   "main": "index.js",
   "dependencies": {
