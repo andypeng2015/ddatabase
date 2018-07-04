@@ -1,13 +1,12 @@
 {
   "name": "@ddatabase/protocol",
-  "version": "0.2.3",
-  "description": "Stream that implements the dDatabase protocol.",
+  "version": "0.2.6",
+  "description": "dDatabase Protocol Stream",
   "main": "index.js",
   "dependencies": {
-    "buffer-alloc-unsafe": "^1.0.0",
-    "buffer-from": "^1.0.0",
+    "brfs": "^1.4.3",
     "inherits": "^2.0.3",
-    "protocol-buffers-encodings": "^1.1.0",
+    "protocol-buffers": "^3.2.1",
     "readable-stream": "^2.2.6",
     "sodium-universal": "^2.0.0",
     "sorted-indexof": "^1.0.0",
@@ -15,13 +14,16 @@
   },
   "devDependencies": {
     "choppa": "^1.0.2",
-    "protocol-buffers": "^4.0.2",
     "standard": "^9.0.1",
     "tape": "^4.6.3"
   },
   "scripts": {
-    "test": "standard && tape test.js",
-    "protobuf": "protocol-buffers schema.proto -o messages.js"
+    "test": "standard && tape test.js"
+  },
+  "browserify": {
+    "transform": [
+      "brfs"
+    ]
   },
   "publishConfig": {
     "access": "public"
