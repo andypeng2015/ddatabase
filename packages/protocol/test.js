@@ -1,19 +1,18 @@
 var tape = require('tape')
 var choppa = require('choppa')
 var protocol = require('./')
-var bufferFrom = require('buffer-from')
 
-var KEY = bufferFrom('01234567890123456789012345678901')
-var OTHER_KEY = bufferFrom('12345678901234567890123456789012')
+var KEY = new Buffer('01234567890123456789012345678901')
+var OTHER_KEY = new Buffer('12345678901234567890123456789012')
 
-tape('dDatabase Protocol Tests: Basic', function (t) {
+tape('dDatabase Protocol Test: Basic', function (t) {
   t.plan(2)
 
   var a = protocol()
   var b = protocol()
 
-  a.ddb(KEY)
-  b.ddb(KEY)
+  a.feed(KEY)
+  b.feed(KEY)
 
   a.once('handshake', function () {
     t.pass('a got handshake')
@@ -26,67 +25,63 @@ tape('dDatabase Protocol Tests: Basic', function (t) {
   a.pipe(b).pipe(a)
 })
 
-tape('dDatabase Protocol Tests: basic with handshake options', function (t) {
-  t.plan(16)
+tape('dDatabase Protocol Test: Basic with handshake options', function (t) {
+  t.plan(12)
 
   var data = [
     'eeaa62fbb11ba521cce58cf3fae42deb15d94a0436fc7fa0cbba8f130e7c0499',
     '8c797667bf307d82c51a8308fe477b781a13708e0ec1f2cc7f497392574e2464'
   ]
 
-  var a = protocol({id: bufferFrom('a'), live: true, userData: bufferFrom(data)})
-  var b = protocol({id: bufferFrom('b'), live: false, ack: true})
+  var a = protocol({id: new Buffer('a'), live: true, userData: new Buffer(data)})
+  var b = protocol({id: new Buffer('b'), live: false})
 
-  a.ddb(KEY)
-  b.ddb(KEY)
+  a.feed(KEY)
+  b.feed(KEY)
 
   a.once('handshake', function () {
-    t.same(a.id, bufferFrom('a'))
+    t.same(a.id, new Buffer('a'))
     t.same(a.live, true)
-    t.same(a.ack, false)
-    t.same(a.userData, bufferFrom(data))
-    t.same(a.remoteId, bufferFrom('b'))
+    t.same(a.userData, new Buffer(data))
+    t.same(a.remoteId, new Buffer('b'))
     t.same(a.remoteLive, false)
     t.same(a.remoteUserData, null)
-    t.same(a.remoteAck, true)
   })
 
   b.once('handshake', function () {
-    t.same(b.id, bufferFrom('b'))
+    t.same(b.id, new Buffer('b'))
     t.same(b.live, false)
-    t.same(b.ack, true)
     t.same(b.userData, null)
-    t.same(b.remoteId, bufferFrom('a'))
+    t.same(b.remoteId, new Buffer('a'))
     t.same(b.remoteLive, true)
-    t.same(b.remoteUserData, bufferFrom(data))
-    t.same(b.remoteAck, false)
+    t.same(b.remoteUserData, new Buffer(data))
   })
 
   a.pipe(b).pipe(a)
 })
 
-tape('dDatabase Protocol Tests: send messages', function (t) {
+tape('dDatabase Protocol Test: Send messages', function (t) {
   t.plan(10)
 
   var a = protocol()
   var b = protocol()
 
-  var ch1 = a.ddb(KEY)
-  var ch2 = b.ddb(KEY)
+  var ch1 = a.feed(KEY)
+  var ch2 = b.feed(KEY)
 
-  b.on('ddb', function (revelationKey) {
+  b.on('feed', function (revelationKey) {
     t.same(revelationKey, ch1.revelationKey)
   })
 
-  a.on('ddb', function (revelationKey) {
+  a.on('feed', function (revelationKey) {
     t.same(revelationKey, ch2.revelationKey)
   })
 
   ch2.on('data', function (data) {
-    t.same(data, {index: 42, signature: null, value: bufferFrom('hi'), nodes: []})
+    t.same(data, {index: 42, signature: null, value: new Buffer('hi'), nodes: []})
   })
 
-  ch1.data({index: 42, value: bufferFrom('hi')})
+  ch1.data({index: 42, value: new Buffer('hi')})
 
   ch2.on('request', function (request) {
     t.same(request, {index: 10, hash: false, bytes: 0, nodes: 0})
@@ -133,28 +128,28 @@ tape('dDatabase Protocol Tests: send messages', function (t) {
   a.pipe(b).pipe(a)
 })
 
-tape('dDatabase Protocol Tests: send messages (chunked)', function (t) {
+tape('dDatabase Protocol Test: Send messages (chunked)', function (t) {
   t.plan(10)
 
   var a = protocol()
   var b = protocol()
 
-  var ch1 = a.ddb(KEY)
-  var ch2 = b.ddb(KEY)
+  var ch1 = a.feed(KEY)
+  var ch2 = b.feed(KEY)
 
-  b.on('ddb', function (revelationKey) {
+  b.on('feed', function (revelationKey) {
     t.same(revelationKey, ch1.revelationKey)
   })
 
-  a.on('ddb', function (revelationKey) {
+  a.on('feed', function (revelationKey) {
     t.same(revelationKey, ch2.revelationKey)
   })
 
   ch2.on('data', function (data) {
-    t.same(data, {index: 42, signature: null, value: bufferFrom('hi'), nodes: []})
+    t.same(data, {index: 42, signature: null, value: new Buffer('hi'), nodes: []})
   })
 
-  ch1.data({index: 42, value: bufferFrom('hi')})
+  ch1.data({index: 42, value: new Buffer('hi')})
 
   ch2.on('request', function (request) {
     t.same(request, {index: 10, hash: false, bytes: 0, nodes: 0})
@@ -201,28 +196,28 @@ tape('dDatabase Protocol Tests: send messages (chunked)', function (t) {
   a.pipe(choppa()).pipe(b).pipe(choppa()).pipe(a)
 })
 
-tape('dDatabase Protocol Tests: send messages (concat)', function (t) {
+tape('send messages (concat)', function (t) {
   t.plan(10)
 
   var a = protocol()
   var b = protocol()
 
-  var ch1 = a.ddb(KEY)
-  var ch2 = b.ddb(KEY)
+  var ch1 = a.feed(KEY)
+  var ch2 = b.feed(KEY)
 
-  b.on('ddb', function (revelationKey) {
+  b.on('feed', function (revelationKey) {
     t.same(revelationKey, ch1.revelationKey)
   })
 
-  a.on('ddb', function (revelationKey) {
+  a.on('feed', function (revelationKey) {
     t.same(revelationKey, ch2.revelationKey)
   })
 
   ch2.on('data', function (data) {
-    t.same(data, {index: 42, signature: null, value: bufferFrom('hi'), nodes: []})
+    t.same(data, {index: 42, signature: null, value: new Buffer('hi'), nodes: []})
   })
 
-  ch1.data({index: 42, value: bufferFrom('hi')})
+  ch1.data({index: 42, value: new Buffer('hi')})
 
   ch2.on('request', function (request) {
     t.same(request, {index: 10, hash: false, bytes: 0, nodes: 0})
@@ -280,9 +275,9 @@ tape('dDatabase Protocol Tests: send messages (concat)', function (t) {
   }
 })
 
-tape('dDatabase Protocol Tests: destroy', function (t) {
+tape('dDatabase Protocol Test: Destroy', function (t) {
   var a = protocol()
-  var ch1 = a.ddb(KEY)
+  var ch1 = a.feed(KEY)
 
   ch1.on('close', function () {
     t.pass('closed')
@@ -292,14 +287,14 @@ tape('dDatabase Protocol Tests: destroy', function (t) {
   a.destroy()
 })
 
-tape('dDatabase Protocol Tests: first ddb should be the same', function (t) {
+tape('dDatabase Protocol Test: First dDatabase should be the same', function (t) {
   t.plan(2)
 
   var a = protocol()
   var b = protocol()
 
-  a.ddb(KEY)
-  b.ddb(OTHER_KEY)
+  a.feed(KEY)
+  b.feed(OTHER_KEY)
 
   a.once('error', function () {
     t.pass('a should error')
@@ -312,15 +307,15 @@ tape('dDatabase Protocol Tests: first ddb should be the same', function (t) {
   a.pipe(b).pipe(a)
 })
 
-tape('dDatabase Protocol Tests: multiple ddbs', function (t) {
+tape('multiple feeds', function (t) {
   var a = protocol()
   var b = protocol()
 
-  a.ddb(KEY)
-  b.ddb(KEY)
+  a.feed(KEY)
+  b.feed(KEY)
 
-  var ch1 = a.ddb(OTHER_KEY)
-  var ch2 = b.ddb(OTHER_KEY)
+  var ch1 = a.feed(OTHER_KEY)
+  var ch2 = b.feed(OTHER_KEY)
 
   ch1.have({
     start: 10,
@@ -335,17 +330,17 @@ tape('dDatabase Protocol Tests: multiple ddbs', function (t) {
   a.pipe(b).pipe(a)
 })
 
-tape('dDatabase Protocol Tests: async ddb', function (t) {
+tape('dDatabase Protocol Test: Async dDatabase', function (t) {
   var a = protocol()
   var b = protocol()
 
-  var ch1 = a.ddb(KEY)
+  var ch1 = a.feed(KEY)
 
   ch1.request({index: 42})
 
-  b.once('ddb', function () {
+  b.once('feed', function () {
     setTimeout(function () {
-      var ch2 = b.ddb(KEY)
+      var ch2 = b.feed(KEY)
       ch2.on('request', function (request) {
         t.same(request.index, 42)
         t.end()
@@ -356,15 +351,15 @@ tape('dDatabase Protocol Tests: async ddb', function (t) {
   a.pipe(b).pipe(a)
 })
 
-tape('dDatabase Protocol Tests: stream is encrypted', function (t) {
+tape('dDatabase Protocol Test: Stream is encrypted', function (t) {
   var a = protocol()
   var b = protocol()
 
-  var ch1 = a.ddb(KEY)
-  var ch2 = b.ddb(KEY)
+  var ch1 = a.feed(KEY)
+  var ch2 = b.feed(KEY)
 
   ch2.on('data', function (data) {
-    t.same(data.value, bufferFrom('i am secret'))
+    t.same(data.value, new Buffer('i am secret'))
     t.end()
   })
 
@@ -374,20 +369,20 @@ tape('dDatabase Protocol Tests: stream is encrypted', function (t) {
 
   a.pipe(b).pipe(a)
 
-  ch1.data({index: 42, value: bufferFrom('i am secret')})
+  ch1.data({index: 42, value: new Buffer('i am secret')})
 })
 
-tape('dDatabase Protocol Tests: stream can be unencrypted', function (t) {
+tape('dDatabase Protocol Test: Stream can be unencrypted', function (t) {
   var a = protocol({encrypt: false})
   var b = protocol({encrypt: false})
 
-  var ch1 = a.ddb(KEY)
-  var ch2 = b.ddb(KEY)
+  var ch1 = a.feed(KEY)
+  var ch2 = b.feed(KEY)
   var sawSecret = false
 
   ch2.on('data', function (data) {
     t.ok(sawSecret, 'saw secret')
-    t.same(data.value, bufferFrom('i am secret'))
+    t.same(data.value, new Buffer('i am secret'))
     t.end()
   })
 
@@ -399,15 +394,15 @@ tape('dDatabase Protocol Tests: stream can be unencrypted', function (t) {
 
   a.pipe(b).pipe(a)
 
-  ch1.data({index: 42, value: bufferFrom('i am secret')})
+  ch1.data({index: 42, value: new Buffer('i am secret')})
 })
 
-tape('dDatabase Protocol Tests: keep alives', function (t) {
+tape('dDatabase Protocol Test: Keep alives', function (t) {
   var a = protocol({timeout: 100})
   var b = protocol({timeout: 100})
 
-  a.ddb(KEY)
-  b.ddb(KEY)
+  a.feed(KEY)
+  b.feed(KEY)
 
   var timeout = setTimeout(function () {
     t.pass('should not time out')
@@ -423,7 +418,7 @@ tape('dDatabase Protocol Tests: keep alives', function (t) {
   a.pipe(b).pipe(a)
 })
 
-tape('dDatabase Protocol Tests: timeouts', function (t) {
+tape('dDatabase Protocol Test: Timeouts', function (t) {
   var a = protocol({timeout: false})
   var b = protocol({timeout: 100})
 
@@ -440,8 +435,8 @@ tape('dDatabase Protocol Tests: timeouts', function (t) {
   a.pipe(b).pipe(a)
 })
 
-tape('dDatabase Protocol Tests: expected ddbs', function (t) {
-  var a = protocol({expectedDdbs: 1})
+tape('dDatabase Protocol Test: Expected dDatabases', function (t) {
+  var a = protocol({expectedFeeds: 1})
 
   a.resume()
   a.on('end', function () {
@@ -449,41 +444,41 @@ tape('dDatabase Protocol Tests: expected ddbs', function (t) {
     t.end()
   })
 
-  var ch = a.ddb(KEY)
+  var ch = a.feed(KEY)
 
   ch.close()
 })
 
-tape('dDatabase Protocol Tests: 2 expected ddbs', function (t) {
-  var a = protocol({expectedDdbs: 2})
+tape('dDatabase Protocol Test: 2 expected dDatabases', function (t) {
+  var a = protocol({expectedFeeds: 2})
   var created = 0
 
   a.resume()
   a.on('end', function () {
-    t.same(created, 2, 'created two ddbs')
+    t.same(created, 2, 'created two feeds')
     t.pass('should end')
     t.end()
   })
 
   created++
-  var ch = a.ddb(KEY)
+  var ch = a.feed(KEY)
   ch.close()
 
   setTimeout(function () {
     created++
-    var ch = a.ddb(OTHER_KEY)
+    var ch = a.feed(OTHER_KEY)
     ch.close()
   }, 100)
 })
 
-tape('dDatabase Protocol Tests: message after ping', function (t) {
+tape('dDatabase Protocol Test: Message after ping', function (t) {
   t.plan(2)
 
   var a = protocol()
   var b = protocol()
 
-  var ch1 = a.ddb(KEY)
-  var ch2 = b.ddb(KEY)
+  var ch1 = a.feed(KEY)
+  var ch2 = b.feed(KEY)
 
   ch2.on('have', function (have) {
     t.pass('got have')
@@ -496,7 +491,7 @@ tape('dDatabase Protocol Tests: message after ping', function (t) {
   a.pipe(b).pipe(a)
 })
 
-tape('dDatabase Protocol Tests: extension message', function (t) {
+tape('dDatabase Protocol Test: Extension message', function (t) {
   t.plan(10)
 
   var a = protocol({
@@ -507,17 +502,17 @@ tape('dDatabase Protocol Tests: extension message', function (t) {
     extensions: ['b', 'c']
   })
 
-  var ch1 = a.ddb(KEY)
-  var ch2 = b.ddb(KEY)
+  var ch1 = a.feed(KEY)
+  var ch2 = b.feed(KEY)
 
   ch2.on('extension', function (type, message) {
     t.same(type, 'b')
-    t.same(message, bufferFrom('hello ch2'))
+    t.same(message, new Buffer('hello ch2'))
   })
 
   ch1.on('extension', function (type, message) {
     t.same(type, 'b')
-    t.same(message, bufferFrom('hello ch1'))
+    t.same(message, new Buffer('hello ch1'))
   })
 
   a.once('handshake', function () {
@@ -525,9 +520,9 @@ tape('dDatabase Protocol Tests: extension message', function (t) {
     t.same(a.remoteSupports('b'), true)
     t.same(a.remoteSupports('c'), false)
 
-    ch1.extension('a', bufferFrom('nooo'))
-    ch1.extension('b', bufferFrom('hello ch2'))
-    ch1.extension('c', bufferFrom('nooo'))
+    ch1.extension('a', new Buffer('nooo'))
+    ch1.extension('b', new Buffer('hello ch2'))
+    ch1.extension('c', new Buffer('nooo'))
   })
 
   b.once('handshake', function () {
@@ -535,9 +530,9 @@ tape('dDatabase Protocol Tests: extension message', function (t) {
     t.same(b.remoteSupports('b'), true)
     t.same(b.remoteSupports('c'), false)
 
-    ch2.extension('a', bufferFrom('nooo'))
-    ch2.extension('b', bufferFrom('hello ch1'))
-    ch2.extension('c', bufferFrom('nooo'))
+    ch2.extension('a', new Buffer('nooo'))
+    ch2.extension('b', new Buffer('hello ch1'))
+    ch2.extension('c', new Buffer('nooo'))
   })
 
   a.pipe(b).pipe(a)

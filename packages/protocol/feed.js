@@ -2,12 +2,11 @@ var events = require('events')
 var inherits = require('inherits')
 var varint = require('varint')
 var messages = require('./messages')
-var bufferAlloc = require('buffer-alloc-unsafe')
 
-module.exports = Ddb
+module.exports = DDatabase
 
-function Ddb (stream) {
-  if (!(this instanceof Ddb)) return new Ddb(stream)
+function DDatabase (stream) {
+  if (!(this instanceof DDatabase)) return new DDatabase(stream)
   events.EventEmitter.call(this)
 
   this.key = null
@@ -24,51 +23,51 @@ function Ddb (stream) {
   this._buffer = []
 }
 
-inherits(Ddb, events.EventEmitter)
+inherits(DDatabase, events.EventEmitter)
 
-Ddb.prototype.handshake = function (message) {
+DDatabase.prototype.handshake = function (message) {
   return this._send(1, messages.Handshake, message)
 }
 
-Ddb.prototype.info = function (message) {
+DDatabase.prototype.info = function (message) {
   return this._send(2, messages.Info, message)
 }
 
-Ddb.prototype.have = function (message) {
+DDatabase.prototype.have = function (message) {
   return this._send(3, messages.Have, message)
 }
 
-Ddb.prototype.unhave = function (message) {
+DDatabase.prototype.unhave = function (message) {
   return this._send(4, messages.Unhave, message)
 }
 
-Ddb.prototype.want = function (message) {
+DDatabase.prototype.want = function (message) {
   return this._send(5, messages.Want, message)
 }
 
-Ddb.prototype.unwant = function (message) {
+DDatabase.prototype.unwant = function (message) {
   return this._send(6, messages.Unwant, message)
 }
 
-Ddb.prototype.request = function (message) {
+DDatabase.prototype.request = function (message) {
   return this._send(7, messages.Request, message)
 }
 
-Ddb.prototype.cancel = function (message) {
+DDatabase.prototype.cancel = function (message) {
   return this._send(8, messages.Cancel, message)
 }
 
-Ddb.prototype.data = function (message) {
+DDatabase.prototype.data = function (message) {
   return this._send(9, messages.Data, message)
 }
 
-Ddb.prototype.extension = function (type, message) {
+DDatabase.prototype.extension = function (type, message) {
   var id = this.stream.extensions.indexOf(type)
   if (id === -1) return false
 
   var header = this.header | 15
   var len = this.headerLength + varint.encodingLength(id) + message.length
-  var box = bufferAlloc(varint.encodingLength(len) + len)
+  var box = new Buffer(varint.encodingLength(len) + len)
   var offset = 0
 
   varint.encode(len, box, offset)
@@ -84,46 +83,46 @@ Ddb.prototype.extension = function (type, message) {
   return this.stream._push(box)
 }
 
-Ddb.prototype.remoteSupports = function (name) {
+DDatabase.prototype.remoteSupports = function (name) {
   return this.stream.remoteSupports(name)
 }
 
-Ddb.prototype.destroy = function (err) {
+DDatabase.prototype.destroy = function (err) {
   this.stream.destroy(err)
 }
 
-Ddb.prototype.close = function () {
-  var i = this.stream.ddbs.indexOf(this)
+DDatabase.prototype.close = function () {
+  var i = this.stream.feeds.indexOf(this)
 
   if (i > -1) {
-    this.stream.ddbs[i] = this.stream.ddbs[this.stream.ddbs.length - 1]
-    this.stream.ddbs.pop()
-    this.stream._localDdbs[this.id] = null
+    this.stream.feeds[i] = this.stream.feeds[this.stream.feeds.length - 1]
+    this.stream.feeds.pop()
+    this.stream._localFeeds[this.id] = null
     this.id = -1
 
     if (this.stream.destroyed) return
-    if (this.stream.expectedDdbs <= 0 || --this.stream.expectedDdbs) return
+    if (this.stream.expectedFeeds <= 0 || --this.stream.expectedFeeds) return
 
-    this.stream._prefinalize()
+    this.stream.finalize()
   }
 }
 
-Ddb.prototype._onclose = function () {
+DDatabase.prototype._onclose = function () {
   if (this.closed) return
   this.closed = true
 
   if (!this.stream.destroyed) {
     this.close()
-    if (this.remoteId > -1) this.stream._remoteDdbs[this.remoteId] = null
+    if (this.remoteId > -1) this.stream._remoteFeeds[this.remoteId] = null
     var hex = this.revelationKey.toString('hex')
-    if (this.stream._ddbs[hex] === this) delete this.stream._ddbs[hex]
+    if (this._feeds[hex] === this) delete this._feeds[hex]
   }
 
   if (this.peer) this.peer.onclose()
   else this.emit('close')
 }
 
-Ddb.prototype._resume = function () {
+DDatabase.prototype._resume = function () {
   var self = this
   process.nextTick(resume)
 
@@ -136,7 +135,7 @@ Ddb.prototype._resume = function () {
   }
 }
 
-Ddb.prototype._onextension = function (data, start, end) {
+DDatabase.prototype._onextension = function (data, start, end) {
   if (end <= start) return
 
   var id = varint.decode(data, start)
@@ -152,7 +151,7 @@ Ddb.prototype._onextension = function (data, start, end) {
   else this.emit('extension', name, message)
 }
 
-Ddb.prototype._onmessage = function (type, data, start, end) {
+DDatabase.prototype._onmessage = function (type, data, start, end) {
   var message = decodeMessage(type, data, start, end)
   if (!message || this.closed) return
 
@@ -164,14 +163,14 @@ Ddb.prototype._onmessage = function (type, data, start, end) {
   }
 
   if (this._buffer.length > 16) {
-    this.destroy(new Error('Remote sent too many messages on an unopened ddb'))
+    this.destroy(new Error('Remote sent too many messages on an unopened feed'))
     return
   }
 
   this._buffer.push({type: type, message: message})
 }
 
-Ddb.prototype._emit = function (type, message) {
+DDatabase.prototype._emit = function (type, message) {
   if (this.peer) {
     switch (type) {
       case 2: return this.peer.oninfo(message)
@@ -197,10 +196,10 @@ Ddb.prototype._emit = function (type, message) {
   }
 }
 
-Ddb.prototype._send = function (type, enc, message) {
+DDatabase.prototype._send = function (type, enc, message) {
   var header = this.header | type
   var len = this.headerLength + enc.encodingLength(message)
-  var box = bufferAlloc(varint.encodingLength(len) + len)
+  var box = new Buffer(varint.encodingLength(len) + len)
   var offset = 0
 
   varint.encode(len, box, offset)

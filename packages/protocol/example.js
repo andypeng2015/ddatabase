@@ -1,16 +1,15 @@
 var protocol = require('./')
-var bufferFrom = require('buffer-from')
 
 var a = protocol({id: 'a'})
 var b = protocol({id: 'b'})
 
 a.pipe(b).pipe(a)
 
-var key = bufferFrom('This is a 32 byte key, 012345678')
+var key = new Buffer('This is a 32 byte key, 012345678')
 var missing = 5
 
-var channel = a.ddb(key)
-var remoteChannel = b.ddb(key)
+var channel = a.feed(key)
+var remoteChannel = b.feed(key)
 
 a.on('end', function () {
   console.log('peer a ended')

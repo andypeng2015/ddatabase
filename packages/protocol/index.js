@@ -3,10 +3,8 @@ var inherits = require('inherits')
 var varint = require('varint')
 var sodium = require('sodium-universal')
 var indexOf = require('sorted-indexof')
-var ddb = require('./ddb')
+var feed = require('./feed')
 var messages = require('./messages')
-var bufferAlloc = require('buffer-alloc-unsafe')
-var bufferFrom = require('buffer-from')
 
 module.exports = Protocol
 
@@ -15,11 +13,9 @@ function Protocol (opts) {
   if (!opts) opts = {}
 
   stream.Duplex.call(this)
-  var self = this
 
   this.id = opts.id || randomBytes(32)
   this.live = !!opts.live
-  this.ack = !!opts.ack
   this.userData = opts.userData || null
   this.remoteId = null
   this.remoteLive = false
@@ -30,21 +26,21 @@ function Protocol (opts) {
   this.key = null
   this.revelationKey = null
   this.remoteRevelationKey = null
-  this.ddbs = []
-  this.expectedDdbs = opts.expectedDdbs || 0
+  this.feeds = []
+  this.expectedFeeds = opts.expectedFeeds || 0
   this.extensions = opts.extensions || []
   this.remoteExtensions = null
 
-  this._localDdbs = []
-  this._remoteDdbs = []
-  this._ddbs = {}
+  this._localFeeds = []
+  this._remoteFeeds = []
+  this._feeds = {}
 
   this._nonce = null
   this._remoteNonce = null
   this._xor = null
   this._remoteXor = null
   this._needsKey = false
-  this._length = bufferAlloc(varint.encodingLength(8388608))
+  this._length = new Buffer(varint.encodingLength(8388608))
   this._missing = 0
   this._buf = null
   this._pointer = 0
@@ -54,22 +50,12 @@ function Protocol (opts) {
   this._interval = null
   this._keepAlive = 0
   this._remoteKeepAlive = 0
-  this._maybeFinalize = maybeFinalize
 
   if (opts.timeout !== 0 && opts.timeout !== false) this.setTimeout(opts.timeout || 5000, this._ontimeout)
   this.on('finish', this.finalize)
-
-  function maybeFinalize (err) {
-    if (err) return self.destroy(err)
-    if (!self.expectedDdbs) self.finalize()
-  }
 }
 
 inherits(Protocol, stream.Duplex)
-
-Protocol.prototype._prefinalize = function () {
-  if (!this.emit('prefinalize', this._maybeFinalize)) this.finalize()
-}
 
 Protocol.prototype.setTimeout = function (ms, ontimeout) {
   if (this.destroyed) return
@@ -91,34 +77,34 @@ Protocol.prototype.setTimeout = function (ms, ontimeout) {
   }
 }
 
-Protocol.prototype.ddb = function (key, opts) {
+Protocol.prototype.feed = function (key, opts) {
   if (this.destroyed) return null
   if (!opts) opts = {}
 
   var dk = opts.revelationKey || revelationKey(key)
-  var ch = this._ddb(dk)
+  var ch = this._feed(dk)
 
   if (ch.id > -1) {
     if (opts.peer) ch.peer = opts.peer
     return ch
   }
 
-  if (this._localDdbs.length >= 128) {
-    this._tooManyDdbs()
+  if (this._localFeeds.length >= 128) {
+    this._tooManyFeeds()
     return null
   }
 
-  ch.id = this._localDdbs.push(ch) - 1
+  ch.id = this._localFeeds.push(ch) - 1
   ch.header = ch.id << 4
   ch.headerLength = varint.encodingLength(ch.header)
   ch.key = key
   ch.revelationKey = dk
   if (opts.peer) ch.peer = opts.peer
 
-  this.ddbs.push(ch)
+  this.feeds.push(ch)
 
   var first = !this.key
-  var ddb = {
+  var feed = {
     revelationKey: dk,
     nonce: null
   }
@@ -130,7 +116,7 @@ Protocol.prototype.ddb = function (key, opts) {
     if (!this._sameKey()) return null
 
     if (this.encrypted) {
-      ddb.nonce = this._nonce = randomBytes(24)
+      feed.nonce = this._nonce = randomBytes(24)
       this._xor = sodium.crypto_stream_xor_instance(this._nonce, this.key)
       if (this._remoteNonce) {
         this._remoteXor = sodium.crypto_stream_xor_instance(this._remoteNonce, this.key)
@@ -143,8 +129,8 @@ Protocol.prototype.ddb = function (key, opts) {
     }
   }
 
-  var box = encodeDdb(ddb, ch.id)
-  if (!ddb.nonce && this.encrypted) this._xor.update(box, box)
+  var box = encodeFeed(feed, ch.id)
+  if (!feed.nonce && this.encrypted) this._xor.update(box, box)
   this._keepAlive = 0
   this.push(box)
 
@@ -155,8 +141,7 @@ Protocol.prototype.ddb = function (key, opts) {
       id: this.id,
       live: this.live,
       userData: this.userData,
-      extensions: this.extensions,
-      ack: this.ack
+      extensions: this.extensions
     })
   }
 
@@ -191,8 +176,8 @@ Protocol.prototype._kick = function () {
     return
   }
 
-  for (var i = 0; i < this.ddbs.length; i++) {
-    var ch = this.ddbs[i]
+  for (var i = 0; i < this.feeds.length; i++) {
+    var ch = this.feeds[i]
     if (ch.peer) ch.peer.ontick()
     else ch.emit('tick')
   }
@@ -209,7 +194,7 @@ Protocol.prototype._kick = function () {
 
 Protocol.prototype.ping = function () {
   if (!this.key) return true
-  var ping = bufferFrom([0])
+  var ping = new Buffer([0])
   if (this._xor) this._xor.update(ping, ping)
   return this.push(ping)
 }
@@ -232,14 +217,9 @@ Protocol.prototype.finalize = function () {
 Protocol.prototype._close = function () {
   clearInterval(this._interval)
 
-  var ddbs = this.ddbs
-  this.ddbs = []
-  for (var i = 0; i < ddbs.length; i++) ddbs[i]._onclose()
-
-  if (this._xor) {
-    this._xor.final()
-    this._xor = null
-  }
+  var feeds = this.feeds
+  this.feeds = []
+  for (var i = 0; i < feeds.length; i++) feeds[i]._onclose()
 }
 
 Protocol.prototype._read = function () {
@@ -258,11 +238,11 @@ Protocol.prototype._write = function (data, enc, cb) {
   this._parse(data, 0, cb)
 }
 
-Protocol.prototype._ddb = function (dk) {
+Protocol.prototype._feed = function (dk) {
   var hex = dk.toString('hex')
-  var ch = this._ddbs[hex]
+  var ch = this._feeds[hex]
   if (ch) return ch
-  ch = this._ddbs[hex] = ddb(this)
+  ch = this._feeds[hex] = feed(this)
   return ch
 }
 
@@ -278,26 +258,25 @@ Protocol.prototype._onhandshake = function (handshake) {
   this.remoteLive = handshake.live
   this.remoteUserData = handshake.userData
   this.remoteExtensions = indexOf(this.extensions, handshake.extensions)
-  this.remoteAck = handshake.ack
 
   this.emit('handshake')
 }
 
 Protocol.prototype._onopen = function (id, data, start, end) {
-  var ddb = decodeDdb(data, start, end)
+  var feed = decodeFeed(data, start, end)
 
-  if (!ddb) return this._badDdb()
+  if (!feed) return this._badFeed()
 
   if (!this.remoteRevelationKey) {
-    this.remoteRevelationKey = ddb.revelationKey
+    this.remoteRevelationKey = feed.revelationKey
     if (!this._sameKey()) return
 
     if (this.encrypted && !this._remoteNonce) {
-      if (!ddb.nonce) {
+      if (!feed.nonce) {
         this.destroy(new Error('Remote did not include a nonce'))
         return
       }
-      this._remoteNonce = ddb.nonce
+      this._remoteNonce = feed.nonce
     }
 
     if (this.encrypted && this.key && !this._remoteXor) {
@@ -305,10 +284,10 @@ Protocol.prototype._onopen = function (id, data, start, end) {
     }
   }
 
-  this._remoteDdbs[id] = this._ddb(ddb.revelationKey)
-  ddb.remoteId = id
+  this._remoteFeeds[id] = this._feed(feed.revelationKey)
+  feed.remoteId = id
 
-  this.emit('ddb', ddb.revelationKey)
+  this.emit('feed', feed.revelationKey)
 }
 
 Protocol.prototype._onmessage = function (data, start, end) {
@@ -322,17 +301,17 @@ Protocol.prototype._onmessage = function (data, start, end) {
   var id = header >> 4
   var type = header & 15
 
-  if (id >= 128) return this._tooManyDdbs()
-  while (this._remoteDdbs.length < id) this._remoteDdbs.push(null)
+  if (id >= 128) return this._tooManyFeeds()
+  while (this._remoteFeeds.length < id) this._remoteFeeds.push(null)
 
-  var ch = this._remoteDdbs[id]
+  var ch = this._remoteFeeds[id]
 
   if (type === 0) {
     if (ch) ch._onclose()
     return this._onopen(id, data, start, end)
   }
 
-  if (!ch) return this._badDdb()
+  if (!ch) return this._badFeed()
   if (type === 15) return ch._onextension(data, start, end)
   ch._onmessage(type, data, start, end)
 }
@@ -389,7 +368,7 @@ Protocol.prototype._parseMessage = function (data, start) {
   }
 
   if (!this._buf) {
-    this._buf = bufferAlloc(this._missing)
+    this._buf = new Buffer(this._missing)
     this._pointer = 0
   }
 
@@ -422,12 +401,12 @@ Protocol.prototype._parseLength = function (data, start) {
 Protocol.prototype._sameKey = function () {
   if (!this.revelationKey || !this.remoteRevelationKey) return true
   if (this.remoteRevelationKey.toString('hex') === this.revelationKey.toString('hex')) return true
-  this.destroy(new Error('First shared ddatabase must be the same'))
+  this.destroy(new Error('First shared hypercore must be the same'))
   return false
 }
 
-Protocol.prototype._tooManyDdbs = function () {
-  this.destroy(new Error('Only 128 ddbs currently supported. Open a Github issue if you need more'))
+Protocol.prototype._tooManyFeeds = function () {
+  this.destroy(new Error('Only 128 feeds currently supported. Open a Github issue if you need more'))
 }
 
 Protocol.prototype._tooBig = function (len) {
@@ -435,8 +414,8 @@ Protocol.prototype._tooBig = function (len) {
   return len
 }
 
-Protocol.prototype._badDdb = function () {
-  this.destroy(new Error('Remote sent invalid ddb message'))
+Protocol.prototype._badFeed = function () {
+  this.destroy(new Error('Remote sent invalid feed message'))
 }
 
 Protocol.prototype._ontimeout = function () {
@@ -451,25 +430,25 @@ function decodeHeader (data, start) {
   }
 }
 
-function decodeDdb (data, start, end) {
-  var ddb = null
+function decodeFeed (data, start, end) {
+  var feed = null
 
   try {
-    ddb = messages.Ddb.decode(data, start, end)
+    feed = messages.DDatabase.decode(data, start, end)
   } catch (err) {
     return null
   }
 
-  if (ddb.revelationKey.length !== 32) return null
-  if (ddb.nonce && ddb.nonce.length !== 24) return null
+  if (feed.revelationKey.length !== 32) return null
+  if (feed.nonce && feed.nonce.length !== 24) return null
 
-  return ddb
+  return feed
 }
 
-function encodeDdb (ddb, id) {
+function encodeFeed (feed, id) {
   var header = id << 4
-  var len = varint.encodingLength(header) + messages.Ddb.encodingLength(ddb)
-  var box = bufferAlloc(varint.encodingLength(len) + len)
+  var len = varint.encodingLength(header) + messages.DDatabase.encodingLength(feed)
+  var box = new Buffer(varint.encodingLength(len) + len)
   var offset = 0
 
   varint.encode(len, box, offset)
@@ -478,18 +457,18 @@ function encodeDdb (ddb, id) {
   varint.encode(header, box, offset)
   offset += varint.encode.bytes
 
-  messages.Ddb.encode(ddb, box, offset)
+  messages.DDatabase.encode(feed, box, offset)
   return box
 }
 
 function revelationKey (key) {
-  var buf = bufferAlloc(32)
-  sodium.crypto_generichash(buf, bufferFrom('ddatabase'), key)
+  var buf = new Buffer(32)
+  sodium.crypto_generichash(buf, new Buffer('hypercore'), key)
   return buf
 }
 
 function randomBytes (n) {
-  var buf = bufferAlloc(n)
+  var buf = new Buffer(n)
   sodium.randombytes_buf(buf)
   return buf
 }
